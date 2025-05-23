@@ -765,3 +765,42 @@ sudo systemctl restart containerd
 | `SystemdCgroup = true`              | Use systemd for cgroup management (important for Kubernetes)   |
 | `systemctl restart containerd`      | Restart containerd with the updated config                     |
 
+---
+# Kubernetes Kernel Networking Setup
+
+To configure kernel parameters for Kubernetes networking, run:
+
+```bash
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+
+sudo sysctl --system
+```
+
+---
+
+## Explanation
+
+- `net.bridge.bridge-nf-call-iptables = 1`  
+  Enables iptables to inspect and filter bridged IPv4 packets.
+
+- `net.bridge.bridge-nf-call-ip6tables = 1`  
+  Enables ip6tables to inspect and filter bridged IPv6 packets.
+
+- `sudo sysctl --system`  
+  Applies all sysctl configurations from system files, including the new `/etc/sysctl.d/k8s.conf`.
+
+---
+
+## Why This Matters
+
+Kubernetes networking uses bridged interfaces between pods and nodes. Without these sysctl settings:
+
+- iptables/ip6tables cannot filter bridged network traffic.
+- Network policies and security rules might not work correctly.
+- Pod communication could face issues.
+
+These settings ensure Kubernetes CNI plugins can enforce network rules properly.
+---
