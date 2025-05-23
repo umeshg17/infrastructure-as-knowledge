@@ -551,3 +551,155 @@ Let me know if you want to explore:
 - Deep debugging or setup tutorials
 
 ---
+# 🔍 containerd: Snapshots, Layered Images, and Namespaces
+
+---
+
+## 📦 How containerd Manages Snapshots and Layered Images
+
+### 🧱 OCI Image Layers
+
+Container images are built in layers (base OS, runtime, app code). Each layer is immutable and stacked using **OverlayFS** (or other snapshotters).
+
+### 📂 Snapshotter Concept
+
+containerd uses **snapshotters** to manage the **copy-on-write (CoW)** file systems created from image layers.
+
+Common snapshotters:
+- `overlayfs` (default on Linux)
+- `btrfs`
+- `zfs`
+- `windows` (for Windows)
+
+### 🏗️ How It Works
+
+1. Image layers are pulled and stored in `/var/lib/containerd/io.containerd.content.v1.content/`
+2. Layers are unpacked into snapshots using the chosen snapshotter.
+3. Each container gets a **read-write snapshot** on top of read-only layers.
+
+### 🔄 Lifecycle Example
+
+```text
+[ Layer 1 (Base) ] ← read-only
+       ↑
+[ Layer 2 (App)  ] ← read-only
+       ↑
+[ Container FS  ] ← read-write snapshot (COW)
+```
+
+The container modifies only the topmost layer. Lower layers remain unchanged and shared among containers — saving disk space and startup time.
+
+---
+
+## 🌐 How containerd Handles Namespaces
+
+containerd uses **namespaces** to isolate:
+- Containers
+- Images
+- Snapshots
+- Content
+- Events
+
+### 📁 Default Namespace: `k8s.io`
+
+When used with Kubernetes, all resources are created under the `k8s.io` namespace.
+
+### ⚙️ Use Cases
+
+- Prevents conflicts between tools sharing the same containerd daemon
+- Enables multi-tenant isolation
+
+### 🧪 CLI Examples
+
+```bash
+# List containers in specific namespace
+ctr --namespace=k8s.io containers list
+
+# Run container in custom namespace
+ctr --namespace=my-project run -t docker.io/library/ubuntu:latest test bash
+```
+
+---
+
+## 🛠️ Deep Debugging and Setup Tutorials
+
+### 🔍 Debugging containerd
+
+#### 1. **Check containerd status**
+```bash
+systemctl status containerd
+journalctl -u containerd
+```
+
+#### 2. **List running containers**
+```bash
+ctr --namespace=k8s.io containers list
+```
+
+#### 3. **List snapshots**
+```bash
+ctr --namespace=k8s.io snapshots list
+```
+
+#### 4. **Check image layers**
+```bash
+ctr --namespace=k8s.io images list
+ctr --namespace=k8s.io image info <image>
+```
+
+#### 5. **Explore file system mount of container**
+```bash
+sudo ls /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots
+```
+
+---
+
+## 🛠️ Setup containerd (Standalone)
+
+### 💻 Install on Ubuntu
+
+```bash
+sudo apt update
+sudo apt install -y containerd
+```
+
+### 🔧 Configure system modules
+
+```bash
+cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+EOF
+
+sudo modprobe overlay
+sudo modprobe br_netfilter
+```
+
+### 📘 Set sysctl params
+
+```bash
+cat <<EOF | sudo tee /etc/sysctl.d/99-kubernetes-cri.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+
+sudo sysctl --system
+```
+
+### 🔧 Create default config
+
+```bash
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml
+```
+
+### 🔁 Restart containerd
+
+```bash
+sudo systemctl restart containerd
+```
+
+---
+
+Let me know if you want the **Kubernetes integration setup** or **troubleshooting real-world issues (e.g. pod not starting due to containerd)** next.
