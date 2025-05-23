@@ -855,3 +855,52 @@ Without adding the Kubernetes APT repository and GPG key:
 
 These steps ensure that you are installing Kubernetes from a trusted and authenticated source.
 ---
+# Installing Specific Kubernetes Components
+
+After adding the Kubernetes APT repository, install specific versions of core Kubernetes tools using the following commands.
+
+## Commands
+
+```bash
+# Update package index after adding the Kubernetes repo
+sudo apt-get update
+
+# Install specific versions of Kubernetes tools and cri-tools
+sudo apt-get install -y kubelet=1.32.0-1.1 kubeadm=1.32.0-1.1 kubectl=1.32.0-1.1 cri-tools=1.32.0-1.1
+
+# Prevent these packages from being automatically upgraded
+sudo apt-mark hold kubelet kubeadm kubectl
+
+# Enable and start the kubelet service immediately
+sudo systemctl enable --now kubelet
+```
+
+---
+
+## Explanation
+
+- `sudo apt-get update`  
+  Refreshes the APT package index to recognize the newly added Kubernetes repository.
+
+- `sudo apt-get install -y kubelet=1.32.0-1.1 kubeadm=1.32.0-1.1 kubectl=1.32.0-1.1 cri-tools=1.32.0-1.1`  
+  Installs the specified versions of:
+  - `kubelet`: The primary node agent that runs on each node.
+  - `kubeadm`: CLI tool to bootstrap the cluster.
+  - `kubectl`: CLI tool to interact with the cluster.
+  - `cri-tools`: CLI tools for container runtimes (e.g., `crictl`).
+
+- `sudo apt-mark hold kubelet kubeadm kubectl`  
+  Prevents these critical tools from being automatically upgraded during system updates, which could break compatibility within the cluster.
+
+- `sudo systemctl enable --now kubelet`  
+  Enables `kubelet` to start on boot and starts it immediately.
+
+---
+
+## Why This Matters
+
+Pinning exact versions ensures consistency across all cluster nodes and avoids version skew, which Kubernetes does not tolerate well.
+
+Holding updates avoids accidental upgrades that may introduce incompatibility or unexpected behavior.
+
+Enabling `kubelet` ensures the node agent is always running and ready for cluster bootstrapping or joining.
