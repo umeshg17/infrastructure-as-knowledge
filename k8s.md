@@ -80,3 +80,79 @@ These allow `iptables` to inspect bridged **IPv4** and **IPv6** traffic.
 | `br_netfilter`| Enables iptables to filter bridge network traffic   | Kubernetes, containerd|
 
 ---
+
+# Understanding: `modprobe overlay` and `modprobe br_netfilter`
+
+## 🔧 What do these commands do?
+
+```bash
+modprobe overlay
+modprobe br_netfilter
+```
+
+These commands manually **load kernel modules** into the currently running Linux kernel.
+
+- `modprobe` is a utility that **loads (or removes) kernel modules** and automatically loads any dependencies they require.
+- These commands are usually run **before starting container runtimes** like Docker or Kubernetes to ensure necessary kernel support is available.
+
+---
+
+## 📦 Kernel Modules Explained
+
+### 1. `overlay`
+
+- Loads the **OverlayFS** module, a union mount filesystem that allows you to **combine multiple directories into one**.
+- **Required by Docker, containerd, and other container engines** to support layered images.
+- OverlayFS is used to implement **copy-on-write** features in container filesystems.
+
+**Why it's important:**
+
+- When you run a container from an image, the image’s base layer is kept read-only.
+- Any changes you make (e.g., installing software) go into a writable layer on top — this is made possible by OverlayFS.
+
+---
+
+### 2. `br_netfilter`
+
+- Loads the **bridge network filtering** module.
+- Allows **`iptables` to see traffic** going over **Linux bridges** (used by Docker/Kubernetes networking).
+
+**Why it's important:**
+
+- In Kubernetes and Docker, container traffic often crosses virtual bridges.
+- Without this module, **iptables rules won’t apply** to that traffic.
+- Needed for **network policy enforcement** and **firewall rules** to take effect on inter-container communication.
+
+---
+
+## 🔒 Permissions
+
+- These commands typically require **root privileges**:
+
+```bash
+sudo modprobe overlay
+sudo modprobe br_netfilter
+```
+
+---
+
+## 🧠 Why use `modprobe` when we already wrote `/etc/modules-load.d/containerd.conf`?
+
+- The file `/etc/modules-load.d/containerd.conf` ensures these modules are loaded **at every boot**.
+- `modprobe` is used to **load them immediately**, in the **current session**.
+
+📌 So:
+- Use `modprobe` to **load now**.
+- Use `/etc/modules-load.d/*.conf` to **load on reboot**.
+
+---
+
+## ✅ Summary Table
+
+| Command                  | Purpose                                            | Notes                          |
+|--------------------------|----------------------------------------------------|--------------------------------|
+| `modprobe overlay`       | Loads OverlayFS module for container images        | Used by Docker/containerd      |
+| `modprobe br_netfilter`  | Enables iptables filtering on bridged traffic      | Important for Kubernetes       |
+
+---
+
