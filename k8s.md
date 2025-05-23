@@ -904,3 +904,76 @@ Pinning exact versions ensures consistency across all cluster nodes and avoids v
 Holding updates avoids accidental upgrades that may introduce incompatibility or unexpected behavior.
 
 Enabling `kubelet` ensures the node agent is always running and ready for cluster bootstrapping or joining.
+---
+# `kubeadm init` Failed Due to Preflight Errors
+
+When running the following command:
+
+```bash
+kubeadm init --pod-network-cidr=192.168.0.0/16 --kubernetes-version=1.32.0
+```
+
+You encountered the following **preflight check errors**:
+
+---
+
+## ❌ Errors and Fixes
+
+### 1. ⚠️ Swap Warning
+```
+[WARNING Swap]: swap is supported for cgroup v2 only...
+```
+
+### 🔧 Fix
+
+Kubernetes does **not support swap** unless explicitly configured with cgroup v2. It's safest to disable swap:
+
+```bash
+sudo swapoff -a
+sudo sed -i '/ swap / s/^/#/' /etc/fstab
+```
+
+This disables swap temporarily and ensures it remains disabled after reboot.
+
+---
+
+### 2. ❌ Fatal Error: `ip_forward` Not Enabled
+```
+[ERROR FileContent--proc-sys-net-ipv4-ip_forward]: /proc/sys/net/ipv4/ip_forward contents are not set to 1
+```
+
+### 🔧 Fix
+
+Enable IP forwarding, which is essential for routing packets between pods and services:
+
+```bash
+# Set it immediately
+echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+
+# Persist the setting
+cat <<EOF | sudo tee /etc/sysctl.d/k8s-ip-forward.conf
+net.ipv4.ip_forward = 1
+EOF
+
+# Apply the configuration
+sudo sysctl --system
+```
+
+---
+
+## ✅ After Fixes
+
+You can now rerun `kubeadm init`:
+
+```bash
+kubeadm init --pod-network-cidr=192.168.0.0/16 --kubernetes-version=1.32.0
+```
+
+---
+
+## 💡 Why These Matter
+
+- **Swap**: The kubelet expects full control of system memory. Swap can cause unpredictable behavior.
+- **IP Forwarding**: Pods in different subnets communicate via routing; without `ip_forward`, packets won’t reach their destination.
+
+These are essential to ensure Kubernetes networking and node management works correctly.
