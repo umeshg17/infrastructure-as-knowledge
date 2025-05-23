@@ -703,4 +703,65 @@ sudo systemctl restart containerd
 
 ---
 
-Let me know if you want the **Kubernetes integration setup** or **troubleshooting real-world issues (e.g. pod not starting due to containerd)** next.
+## ⚙️ Configuring containerd to Use systemd for Cgroups
+
+---
+
+### 📝 Edit the containerd Config
+
+Open the containerd configuration file:
+
+```bash
+sudo nano /etc/containerd/config.toml
+```
+
+---
+
+### 🔧 Set `SystemdCgroup = true`
+
+Find the section under:
+
+```toml
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options"]
+```
+
+And ensure it contains:
+
+```toml
+SystemdCgroup = true
+```
+
+#### 🧠 What does this do?
+
+- Enables `containerd` to use `systemd` to manage **cgroups** (control groups).
+- This aligns with how **Kubernetes** (via `kubelet`) manages resources like CPU and memory.
+- Required on most modern Linux systems (Ubuntu 20.04+, Debian 10+, etc.)
+
+#### 📌 Why is it important?
+
+If Kubernetes is using `systemd` cgroup drivers but `containerd` is not, you may encounter errors such as:
+
+```text
+failed to create shim: cgroup does not exist
+```
+
+---
+
+### 🔁 Restart containerd to Apply Changes
+
+Once you've saved the file (`Ctrl + O`, `Enter`, then `Ctrl + X` in nano), restart containerd:
+
+```bash
+sudo systemctl restart containerd
+```
+
+---
+
+### ✅ Summary
+
+| Step                                | Purpose                                                        |
+|-------------------------------------|----------------------------------------------------------------|
+| `nano /etc/containerd/config.toml`  | Open containerd config file                                    |
+| `SystemdCgroup = true`              | Use systemd for cgroup management (important for Kubernetes)   |
+| `systemctl restart containerd`      | Restart containerd with the updated config                     |
+
