@@ -414,7 +414,7 @@ Let me know if you want to explore:
 | **runc**      | Low-level runtime that actually starts containers (OCI compliant) |
 | **plugins**   | Provide extended functionality like CRI, snapshotters, etc.       |
 
-```text
+```
 +--------------------+
 |    containerd      |
 | +----------------+ |
@@ -438,10 +438,10 @@ containerd uses a **plugin-based architecture**, where each plugin serves a spec
 
 ### 📦 Common Plugin Types
 
-- `io.containerd.grpc.v1.cri` — Kubernetes CRI interface plugin
-- `io.containerd.snapshotter.v1.overlayfs` — OverlayFS-based snapshot manager
-- `io.containerd.runtime.v2.task` — Handles runtime lifecycle
-- `io.containerd.content.v1.content` — Manages image layers and blobs
+- `io.containerd.grpc.v1.cri` — Kubernetes CRI interface plugin  
+- `io.containerd.snapshotter.v1.overlayfs` — OverlayFS-based snapshot manager  
+- `io.containerd.runtime.v2.task` — Handles runtime lifecycle  
+- `io.containerd.content.v1.content` — Manages image layers and blobs  
 
 Each plugin is discoverable, and their lifecycle is managed by containerd at startup.
 
@@ -457,13 +457,13 @@ Instead of relying on Docker, Kubernetes communicates with **containerd directly
 
 ### 📁 CRI responsibilities
 
-- Pulling container images
-- Managing pods and container lifecycles
-- Exposing gRPC API to the kubelet
+- Pulling container images  
+- Managing pods and container lifecycles  
+- Exposing gRPC API to the kubelet  
 
 ### 🔄 Communication Flow
 
-```text
+```
 Kubelet (K8s Node Agent)
         ↓ (via CRI gRPC)
    containerd (with CRI plugin)
@@ -479,19 +479,19 @@ Kubelet (K8s Node Agent)
 
 Kubernetes uses **CNI plugins** to set up networking for pods. containerd does **not handle networking** directly, but:
 
-- The **CRI plugin** in containerd **invokes CNI plugins** to create network namespaces and bridges.
-- Plugins like `flannel`, `calico`, `cilium`, etc. are used to configure pod-to-pod networking.
+- The **CRI plugin** in containerd **invokes CNI plugins** to create network namespaces and bridges.  
+- Plugins like `flannel`, `calico`, `cilium`, etc. are used to configure pod-to-pod networking.  
 
 ### 🧪 Example flow:
 
-1. Pod is created → kubelet requests container via CRI
-2. CRI plugin in containerd:
-   - Creates namespaces
-   - Calls the configured CNI binary
-3. CNI sets up:
-   - veth pairs
-   - Bridge networks
-   - IP allocation
+1. Pod is created → kubelet requests container via CRI  
+2. CRI plugin in containerd:  
+   - Creates namespaces  
+   - Calls the configured CNI binary  
+3. CNI sets up:  
+   - veth pairs  
+   - Bridge networks  
+   - IP allocation  
 
 ---
 
@@ -501,10 +501,10 @@ Like networking, **containerd delegates storage responsibilities** to Kubernetes
 
 ### How it works:
 
-- containerd **mounts ephemeral volumes** (e.g., `/var/lib/containerd` for image layers)
-- For persistent storage (PVCs), Kubernetes uses **CSI drivers**
-  - CSI attaches and mounts volumes on nodes
-  - These volumes are **bind-mounted** into containers managed by containerd
+- containerd **mounts ephemeral volumes** (e.g., `/var/lib/containerd` for image layers)  
+- For persistent storage (PVCs), Kubernetes uses **CSI drivers**  
+  - CSI attaches and mounts volumes on nodes  
+  - These volumes are **bind-mounted** into containers managed by containerd  
 
 So, containerd handles **container-level mounts**, while CSI handles **node-level volume provisioning and lifecycle**.
 
@@ -512,22 +512,22 @@ So, containerd handles **container-level mounts**, while CSI handles **node-leve
 
 ## 🧪 Real-World Example: Pod Lifecycle in Kubernetes using containerd
 
-1. Kubelet gets a new Pod definition from the API server.
-2. Kubelet uses CRI to request container creation from containerd.
-3. containerd:
-   - Pulls the image from registry
-   - Allocates snapshot (via OverlayFS)
-   - Calls CNI to configure networking
-   - Invokes `runc` to start container
-4. CSI (if needed) provisions volumes and mounts them into the pod
+1. Kubelet gets a new Pod definition from the API server.  
+2. Kubelet uses CRI to request container creation from containerd.  
+3. containerd:  
+   - Pulls the image from registry  
+   - Allocates snapshot (via OverlayFS)  
+   - Calls CNI to configure networking  
+   - Invokes `runc` to start container  
+4. CSI (if needed) provisions volumes and mounts them into the pod  
 
 ---
 
 ## 🧠 Why does containerd matter?
 
-- It is the **default runtime** for most Kubernetes distributions (e.g., EKS, GKE, AKS).
-- It separates **runtime logic** from high-level management (Docker, Kubernetes).
-- Being modular and CRI-compliant makes it ideal for large-scale cloud-native systems.
+- It is the **default runtime** for most Kubernetes distributions (e.g., EKS, GKE, AKS).  
+- It separates **runtime logic** from high-level management (Docker, Kubernetes).  
+- Being modular and CRI-compliant makes it ideal for large-scale cloud-native systems.  
 
 ---
 
@@ -545,12 +545,13 @@ So, containerd handles **container-level mounts**, while CSI handles **node-leve
 
 ## 📚 Next: containerd Snapshots, Namespaces, and Image Management Internals?
 
-Let me know if you want to explore:
-- How containerd manages **snapshots and layered images**
-- How it handles **namespaces for isolation**
-- Deep debugging or setup tutorials
+Let me know if you want to explore:  
+- How containerd manages **snapshots and layered images**  
+- How it handles **namespaces for isolation**  
+- Deep debugging or setup tutorials  
 
 ---
+
 # 🔍 containerd: Snapshots, Layered Images, and Namespaces
 
 ---
@@ -566,20 +567,20 @@ Container images are built in layers (base OS, runtime, app code). Each layer is
 containerd uses **snapshotters** to manage the **copy-on-write (CoW)** file systems created from image layers.
 
 Common snapshotters:
-- `overlayfs` (default on Linux)
-- `btrfs`
-- `zfs`
-- `windows` (for Windows)
+- `overlayfs` (default on Linux)  
+- `btrfs`  
+- `zfs`  
+- `windows` (for Windows)  
 
 ### 🏗️ How It Works
 
-1. Image layers are pulled and stored in `/var/lib/containerd/io.containerd.content.v1.content/`
-2. Layers are unpacked into snapshots using the chosen snapshotter.
-3. Each container gets a **read-write snapshot** on top of read-only layers.
+1. Image layers are pulled and stored in `/var/lib/containerd/io.containerd.content.v1.content/`  
+2. Layers are unpacked into snapshots using the chosen snapshotter.  
+3. Each container gets a **read-write snapshot** on top of read-only layers.  
 
 ### 🔄 Lifecycle Example
 
-```text
+```
 [ Layer 1 (Base) ] ← read-only
        ↑
 [ Layer 2 (App)  ] ← read-only
@@ -594,11 +595,11 @@ The container modifies only the topmost layer. Lower layers remain unchanged and
 ## 🌐 How containerd Handles Namespaces
 
 containerd uses **namespaces** to isolate:
-- Containers
-- Images
-- Snapshots
-- Content
-- Events
+- Containers  
+- Images  
+- Snapshots  
+- Content  
+- Events  
 
 ### 📁 Default Namespace: `k8s.io`
 
@@ -606,8 +607,8 @@ When used with Kubernetes, all resources are created under the `k8s.io` namespac
 
 ### ⚙️ Use Cases
 
-- Prevents conflicts between tools sharing the same containerd daemon
-- Enables multi-tenant isolation
+- Prevents conflicts between tools sharing the same containerd daemon  
+- Enables multi-tenant isolation  
 
 ### 🧪 CLI Examples
 
