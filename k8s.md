@@ -804,3 +804,54 @@ Kubernetes networking uses bridged interfaces between pods and nodes. Without th
 
 These settings ensure Kubernetes CNI plugins can enforce network rules properly.
 ---
+# Adding Kubernetes APT Repository
+
+To install Kubernetes components on a Debian-based system (like Ubuntu), you first need to configure the APT repository that provides the official Kubernetes packages.
+
+## Commands
+
+```bash
+# Update package index
+sudo apt-get update
+
+# Install required dependencies
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+
+# Download and store the Kubernetes GPG key
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+# Add the Kubernetes APT repository
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+```
+
+---
+
+## Explanation
+
+- `sudo apt-get update`  
+  Updates the local package index to ensure APT knows about the latest available packages.
+
+- `apt-get install -y apt-transport-https ca-certificates curl gpg`  
+  Installs required dependencies:
+  - `apt-transport-https`: Enables APT to use HTTPS for downloading packages.
+  - `ca-certificates`: Ensures SSL certificates are valid.
+  - `curl`: Command-line tool to fetch URLs.
+  - `gpg`: GNU Privacy Guard, used for verifying package authenticity.
+
+- `curl -fsSL ... | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg`  
+  Downloads the GPG public key for the Kubernetes APT repository and converts it to a binary format using `--dearmor`, then stores it in `/etc/apt/keyrings`.
+
+- `echo 'deb ...' | sudo tee /etc/apt/sources.list.d/kubernetes.list`  
+  Adds the Kubernetes repository to APT's list of sources, pointing to the official v1.32 stable release.
+
+---
+
+## Why This Matters
+
+Without adding the Kubernetes APT repository and GPG key:
+
+- You won't be able to install `kubeadm`, `kubelet`, and `kubectl` using `apt`.
+- Package authenticity can't be verified, which is a security risk.
+
+These steps ensure that you are installing Kubernetes from a trusted and authenticated source.
+---
